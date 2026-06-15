@@ -13,6 +13,11 @@ app = FastAPI()
 
 templates = Jinja2Templates(directory="static")
 
+@app.head("/check")
+async def monitor_server():
+    return {"status":"ok"}
+
+
 @app.get("/status")
 async def get_health():
     return {"status":"ok"}
