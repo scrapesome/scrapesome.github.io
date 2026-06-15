@@ -1,301 +1,1154 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="content="width=device-width,initial-scale=1,user-scalable=no"/>
-  <title>scrapesome - web scraping tool</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-    }
-  </script>
-  <!-- Add this before your </body> tag -->
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+<title>scrapesome — web scraping, simplified</title>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <link rel="icon" href="https://raw.githubusercontent.com/scrapesome/scrapesome/refs/heads/main/docs/assets/images/favicon.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"/>
+<link rel="icon" href="https://raw.githubusercontent.com/scrapesome/scrapesome/refs/heads/main/docs/assets/images/favicon.png"/>
+<style>
+:root{
+  --bg:#07070d;--s1:#0f0f1a;--s2:#14141f;--s3:#1c1c2e;
+  --brd:#252540;--brd2:#333355;
+  --ac:#a5d066;--ac2:#c4e48a;--ac3:#dff0b3;
+  --glow:rgba(165,208,102,.22);--glow2:rgba(165,208,102,.07);
+  --txt:#eaeaf5;--muted:#7070a0;--dim:#4a4a72;
+  --grn:#34d399;--red:#f87171;--ylw:#fbbf24;--sky:#38bdf8;--rose:#fb7185;--teal:#2dd4bf;
+  --font:'Space Grotesk',system-ui,sans-serif;
+  --mono:'Space Mono',monospace;
+  --r8:8px;--r12:12px;--r16:16px;--r20:20px;--r24:24px
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden}
+::selection{background:var(--ac);color:#fff}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--s1)}
+::-webkit-scrollbar-thumb{background:var(--brd2);border-radius:3px}
+a{text-decoration:none;color:inherit}
+
+/* canvas */
+#cvs{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55}
+
+/* pages */
+.page{display:none;position:relative;z-index:10}
+.page.on{display:block;animation:up .48s cubic-bezier(.16,1,.3,1) both}
+@keyframes up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;height:60px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 2.5rem;
+  background:rgba(7,7,13,.8);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--brd)
+}
+.nav-logo{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.nav-logo-img{margin-left:-70px;margin-top:10px;width:220px;height:80px;border-radius:7px;object-fit:cover;transition:transform .3s}
+.nav-logo:hover .nav-logo-img{transform:rotate(-8deg) scale(1.1)}
+.nav-logo-fb{width:28px;height:28px;border-radius:7px;background:#a5d066;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .3s}
+.nav-logo:hover .nav-logo-fb{transform:rotate(-8deg) scale(1.1)}
+.nav-logo span{font-family:var(--mono);font-size:.98rem;font-weight:700}
+.nav-tabs{display:flex;gap:4px}
+.nav-tab{padding:6px 14px;border-radius:var(--r8);border:none;background:transparent;color:var(--muted);font:500 .8rem var(--font);cursor:pointer;transition:all .2s}
+.nav-tab:hover{background:var(--s3);color:var(--txt)}
+.nav-tab.on{background:var(--s2);color:var(--txt);border:1px solid var(--brd)}
+.nav-right{display:flex;align-items:center;gap:8px}
+.nav-icon{width:34px;height:34px;border-radius:var(--r8);border:1px solid var(--brd);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .2s}
+.nav-icon:hover{background:var(--s3);color:var(--txt)}
+.nav-cta{padding:7px 18px;border-radius:var(--r8);border:1px solid var(--ac);background:transparent;color:var(--ac2);font:600 .8rem var(--font);cursor:pointer;transition:all .2s}
+.nav-cta:hover{background:var(--ac);color:#fff;box-shadow:0 0 20px var(--glow)}
+
+/* ── HERO ── */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 2rem 5rem}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:5px 16px;border-radius:100px;border:1px solid var(--brd2);background:var(--s2);font:500 .7rem var(--mono);color:var(--muted);margin-bottom:2rem;animation:up .5s .05s both}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--grn);flex-shrink:0;animation:blink 2.4s infinite}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(52,211,153,.5)}60%{opacity:.5;box-shadow:0 0 0 6px rgba(52,211,153,0)}}
+.hero h1{font-family:var(--mono);font-size:clamp(2.5rem,6vw,5rem);font-weight:700;line-height:1.07;letter-spacing:-.03em;margin-bottom:1.5rem;animation:up .5s .12s both}
+.grad{color:#a5d066}
+.hero-sub{font-size:1.05rem;color:var(--muted);max-width:500px;line-height:1.75;margin-bottom:2.6rem;animation:up .5s .2s both}
+.hero-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;animation:up .5s .28s both}
+.btn-p{display:inline-flex;align-items:center;gap:7px;padding:12px 28px;border-radius:var(--r12);border:none;background:#a5d066;color:#fff;font:600 .9rem var(--font);cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+.btn-p::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,.12);opacity:0;transition:opacity .2s}
+.btn-p:hover::before{opacity:1}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 14px 40px rgba(165,208,102,.38)}
+.btn-p:active{transform:none}
+.btn-o{display:inline-flex;align-items:center;gap:7px;padding:12px 22px;border-radius:var(--r12);border:1px solid var(--brd2);background:var(--s2);color:var(--txt);font:500 .9rem var(--font);cursor:pointer;transition:all .2s}
+.btn-o:hover{border-color:var(--ac);color:var(--ac2);background:var(--glow2)}
+
+/* install strip */
+.install-strip{
+  display:inline-flex;align-items:center;gap:10px;
+  margin-top:2.2rem;padding:10px 18px;border-radius:var(--r12);
+  background:var(--s1);border:1px solid var(--brd);
+  font:400 .82rem var(--mono);color:var(--txt);
+  animation:up .5s .36s both
+}
+.install-strip .ps1{color:var(--ac2)}
+.install-strip .pkg{color:var(--grn)}
+.copy-strip{background:transparent;border:none;cursor:pointer;color:var(--dim);transition:color .2s;padding:2px}
+.copy-strip:hover{color:var(--muted)}
+
+/* terminal */
+.terminal{
+  margin:2.8rem auto 0;max-width:600px;width:100%;
+  background:var(--s1);border:1px solid var(--brd);border-radius:var(--r16);
+  overflow:hidden;animation:up .5s .44s both;
+  box-shadow:0 28px 80px rgba(0,0,0,.55)
+}
+.term-bar{display:flex;align-items:center;gap:6px;padding:11px 14px;background:var(--s2);border-bottom:1px solid var(--brd)}
+.td{width:10px;height:10px;border-radius:50%}
+.td1{background:#f87171}.td2{background:#fbbf24}.td3{background:#34d399}
+.term-file{margin-left:auto;font:400 .72rem var(--mono);color:var(--dim)}
+.term-body{padding:1.4rem 1.6rem;font:400 .77rem var(--mono);line-height:2;text-align:left;white-space:pre}
+.tc-cm{color:var(--dim)}.tc-k{color:var(--ac3)}.tc-s{color:var(--grn)}.tc-v{color:var(--sky)}.tc-fn{color:var(--ac2)}.tc-n{color:var(--ylw)}.tc-o{color:var(--rose)}
+.cur{display:inline-block;width:1px;height:17px;background:var(--ac2);margin-left:2px;animation:cur .9s infinite;vertical-align:middle}
+@keyframes cur{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ── SECTIONS ── */
+section{padding:5.5rem 2rem;position:relative;z-index:10}
+.s-label{display:inline-flex;align-items:center;gap:7px;font:600 .68rem var(--mono);color:var(--ac2);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.9rem}
+.s-label::before{content:'';width:16px;height:1px;background:var(--ac2)}
+.s-title{font-family:var(--mono);font-size:clamp(1.5rem,3vw,2.2rem);font-weight:700;letter-spacing:-.025em;line-height:1.15;margin-bottom:.9rem}
+.s-sub{color:var(--muted);font-size:.9rem;line-height:1.75;max-width:520px}
+.center{text-align:center;display:flex;flex-direction:column;align-items:center}
+.center .s-sub{text-align:center}
+
+/* stats */
+.stats{max-width:860px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--brd);border:1px solid var(--brd);border-radius:var(--r16);overflow:hidden}
+.stat{background:var(--s1);padding:1.8rem 1.2rem;text-align:center}
+.stat-n{font:700 2rem var(--mono);margin-bottom:.25rem}
+.stat-n span{color:#a5d066}
+.stat-l{font-size:.75rem;color:var(--muted)}
+
+/* features */
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;max-width:920px;margin:3rem auto 0;background:var(--brd);border:1px solid var(--brd);border-radius:var(--r24);overflow:hidden}
+.feat{background:var(--s1);padding:2rem 1.8rem;display:flex;flex-direction:column;transition:background .2s;position:relative;overflow:hidden;cursor:default}
+.feat::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at top left,var(--glow2) 0%,transparent 65%);opacity:0;transition:opacity .3s}
+.feat:hover{background:var(--s2)}
+.feat:hover::after{opacity:1}
+/* icon box */
+.ficon{width:50px;height:50px;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:1.2rem;position:relative;z-index:1;flex-shrink:0}
+/* color variants */
+.fi-v{background:rgba(165,208,102,.12);border:1px solid rgba(165,208,102,.28);box-shadow:0 0 16px rgba(165,208,102,.12) inset}
+.fi-b{background:rgba(56,189,248,.09);border:1px solid rgba(56,189,248,.22);box-shadow:0 0 16px rgba(56,189,248,.1) inset}
+.fi-g{background:rgba(52,211,153,.09);border:1px solid rgba(52,211,153,.22);box-shadow:0 0 16px rgba(52,211,153,.1) inset}
+.fi-y{background:rgba(251,191,36,.09);border:1px solid rgba(251,191,36,.22);box-shadow:0 0 16px rgba(251,191,36,.08) inset}
+.fi-r{background:rgba(248,113,113,.09);border:1px solid rgba(248,113,113,.22);box-shadow:0 0 16px rgba(248,113,113,.08) inset}
+.fi-t{background:rgba(45,212,191,.09);border:1px solid rgba(45,212,191,.22);box-shadow:0 0 16px rgba(45,212,191,.08) inset}
+.feat-name{font:600 .9rem var(--font);margin-bottom:.4rem;position:relative;z-index:1}
+.feat-desc{font-size:.78rem;color:var(--muted);line-height:1.65;position:relative;z-index:1}
+
+/* steps */
+.steps{max-width:940px;margin:3.5rem auto 0;display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:stretch}
+.step-conn{display:flex;align-items:center;justify-content:center;padding:0 .5rem;color:var(--brd2);flex-shrink:0;align-self:center}
+.step{background:var(--s2);border:1px solid var(--brd);border-radius:var(--r20);padding:2rem 1.8rem 1.6rem;position:relative;overflow:hidden;transition:border-color .3s,box-shadow .3s,transform .3s;cursor:default;display:flex;flex-direction:column}
+.step::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at top left,var(--glow2),transparent 60%);opacity:0;transition:opacity .3s}
+.step:hover{border-color:rgba(165,208,102,.42);box-shadow:0 20px 50px rgba(165,208,102,.13);transform:translateY(-5px)}
+.step:hover::after{opacity:1}
+.step-bg-n{position:absolute;top:-10px;right:14px;font:900 5.8rem var(--mono);color:#a5d066;opacity:.055;line-height:1;letter-spacing:-.05em;pointer-events:none;user-select:none}
+.step-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:100px;border:1px solid rgba(165,208,102,.28);background:rgba(165,208,102,.07);font:600 .62rem var(--mono);color:var(--ac2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:1.1rem;width:fit-content;position:relative;z-index:1}
+.step-icon{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;position:relative;z-index:1;flex-shrink:0}
+.step h3{font:600 .95rem var(--font);margin-bottom:.45rem;position:relative;z-index:1}
+.step p{font-size:.78rem;color:var(--muted);line-height:1.7;position:relative;z-index:1;flex:1}
+.step-tag{margin-top:1.2rem;padding-top:.9rem;border-top:1px solid var(--brd);font:400 .68rem var(--mono);color:var(--dim);display:flex;align-items:center;gap:6px;position:relative;z-index:1}
+.step-tag-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+
+/* formats */
+.fmt-grid{max-width:800px;margin:2.5rem auto 0;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.fmt{background:var(--s1);border:1px solid var(--brd);border-radius:var(--r16);padding:1.6rem 1.2rem;text-align:center;transition:all .25s;cursor:default}
+.fmt:hover{border-color:var(--ac);background:var(--s2);transform:translateY(-3px);box-shadow:0 12px 30px rgba(165,208,102,.12)}
+.fmt-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem}
+.fmt-name{font:700 .82rem var(--mono);margin-bottom:.35rem}
+.fmt-desc{font-size:.72rem;color:var(--muted);line-height:1.55}
+
+/* code block */
+.code-pair{max-width:860px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start}
+.code-card{background:var(--s1);border:1px solid var(--brd);border-radius:var(--r16);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.code-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--s2);border-bottom:1px solid var(--brd)}
+.code-lang{font:600 .68rem var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.1em;display:flex;align-items:center;gap:6px}
+.code-lang-dot{width:8px;height:8px;border-radius:50%;background:var(--ylw)}
+.ccopy{padding:4px 10px;border-radius:6px;border:1px solid var(--brd);background:transparent;color:var(--dim);font:.68rem var(--font);cursor:pointer;transition:all .2s}
+.ccopy:hover{background:var(--s3);color:var(--txt)}
+.code-body{padding:1.4rem 1.6rem;font:400 .75rem var(--mono);line-height:1.95;overflow-x:auto;white-space:pre}
+.code-info{padding-top:.5rem}
+.code-info h3{font:600 1.3rem var(--font);margin-bottom:.7rem;letter-spacing:-.01em}
+.code-info p{font-size:.85rem;color:var(--muted);line-height:1.7;margin-bottom:1rem}
+.check-list{list-style:none;display:flex;flex-direction:column;gap:.45rem}
+.check-list li{display:flex;align-items:flex-start;gap:8px;font-size:.8rem;color:var(--muted)}
+.check-list li::before{content:'✓';color:var(--grn);font-weight:700;flex-shrink:0;margin-top:1px}
+
+/* comparison */
+.cmp-table{max-width:900px;margin:2.5rem auto 0;overflow-x:auto;border-radius:var(--r16);border:1px solid var(--brd)}
+table{width:100%;border-collapse:collapse;font-size:.78rem}
+thead tr{background:var(--s2)}
+th{padding:12px 16px;text-align:left;font:600 .72rem var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--brd);white-space:nowrap}
+td{padding:11px 16px;border-bottom:1px solid var(--brd);color:var(--muted);vertical-align:middle}
+td:first-child{color:var(--txt);font-weight:500}
+tbody tr:last-child td{border-bottom:none}
+tbody tr{background:var(--s1);transition:background .2s}
+tbody tr:hover{background:var(--s2)}
+.yes{color:var(--grn);font-weight:700}
+.no{color:var(--red)}
+.part{color:var(--ylw)}
+
+/* cli section */
+.cli-wrap{max-width:860px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start}
+.cli-info .s-title{font-size:1.5rem}
+.cli-options{margin-top:1.5rem;display:flex;flex-direction:column;gap:8px}
+.cli-opt{background:var(--s1);border:1px solid var(--brd);border-radius:var(--r8);padding:.7rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.opt-flag{font:400 .76rem var(--mono);color:var(--ac2)}
+.opt-desc{font-size:.75rem;color:var(--muted)}
+
+/* install */
+.install-wrap{max-width:820px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start}
+.install-steps{display:flex;flex-direction:column;gap:1rem;margin-top:1.5rem}
+.istep{display:flex;gap:14px;align-items:flex-start}
+.istep-n{width:26px;height:26px;border-radius:8px;background:var(--glow2);border:1px solid rgba(165,208,102,.3);display:flex;align-items:center;justify-content:center;font:700 .65rem var(--mono);color:var(--ac2);flex-shrink:0;margin-top:2px}
+.istep-body h4{font:600 .85rem var(--font);margin-bottom:.25rem}
+.istep-body p{font-size:.77rem;color:var(--muted);line-height:1.6}
+.code-inline{display:inline-block;padding:2px 7px;border-radius:5px;border:1px solid var(--brd);font:400 .75rem var(--mono);color:var(--ac2)}
+
+/* ── SCRAPER PAGE ── */
+.scraper-page{max-width:720px;margin:0 auto;padding:88px 1.5rem 5rem}
+.page-head{margin-bottom:2.2rem}
+.page-head-row{display:flex;align-items:center;gap:12px;margin-bottom:.55rem}
+.page-head-icon{width:42px;height:42px;border-radius:12px;background:#a5d066;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 8px 24px rgba(165,208,102,.28)}
+.page-head-row h2{font:700 1.7rem var(--mono);letter-spacing:-.025em}
+.page-head-live{margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:100px;border:1px solid rgba(52,211,153,.3);background:rgba(52,211,153,.07);font:600 .62rem var(--mono);color:var(--grn)}
+.page-head p{font-size:.83rem;color:var(--muted);line-height:1.6}
+/* URL bar */
+.url-bar{display:flex;align-items:center;background:var(--s1);border:1.5px solid var(--brd);border-radius:var(--r16);overflow:hidden;transition:border-color .2s,box-shadow .2s;margin-bottom:1.2rem;box-shadow:0 4px 20px rgba(0,0,0,.12)}
+.url-bar:focus-within{border-color:var(--ac);box-shadow:0 0 0 3px var(--glow),0 4px 20px rgba(0,0,0,.12)}
+.url-bar-ic{width:52px;height:58px;display:flex;align-items:center;justify-content:center;color:var(--dim);flex-shrink:0;border-right:1px solid var(--brd)}
+.url-bar input{flex:1;height:58px;border:none;background:transparent;font:400 .95rem var(--font);color:var(--txt);outline:none;padding:0 14px}
+.url-bar input::placeholder{color:var(--dim)}
+/* section labels */
+.sc-lbl{font:600 .65rem var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.65rem;display:block}
+/* config row */
+.sc-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.sc-box{background:var(--s1);border:1px solid var(--brd);border-radius:var(--r16);padding:1.2rem 1.4rem}
+/* format pills */
+.fmt-pick{display:flex;gap:6px}
+.fmt-opt{position:relative;cursor:pointer}
+.fmt-opt input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+.fmt-opt span{display:inline-flex;align-items:center;justify-content:center;min-width:52px;padding:6px 14px;border-radius:var(--r8);border:1px solid var(--brd);background:var(--s2);font:600 .72rem var(--mono);color:var(--muted);cursor:pointer;transition:all .18s;user-select:none}
+.fmt-opt span:hover{border-color:var(--brd2);color:var(--txt)}
+.fmt-opt input:checked+span{border-color:var(--ac);background:rgba(165,208,102,.12);color:var(--ac2);box-shadow:inset 0 0 0 1px rgba(165,208,102,.3)}
+/* timeout */
+.rrow{display:flex;align-items:center;gap:12px;margin-top:.2rem}
+.frange{flex:1;-webkit-appearance:none;height:4px;background:var(--brd2);border-radius:2px;outline:none}
+.frange::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--ac);border-radius:50%;cursor:pointer;border:2.5px solid var(--s1);transition:transform .15s,box-shadow .15s}
+.frange::-webkit-slider-thumb:hover{transform:scale(1.15);box-shadow:0 0 0 5px var(--glow)}
+.rval{font:700 .76rem var(--mono);color:var(--ac2);min-width:30px;text-align:right}
+/* toggle option cards */
+.sc-opts-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.sc-tog-card{background:var(--s1);border:1px solid var(--brd);border-radius:var(--r16);padding:1.2rem 1.4rem;transition:border-color .25s,background .25s}
+.sc-tog-card.active{border-color:rgba(165,208,102,.4);background:rgba(165,208,102,.04)}
+.sc-tog-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem;margin-bottom:.45rem}
+.sc-tog-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tog-info .tl{font:500 .85rem var(--font);margin-bottom:.2rem}
+.tog-d{font-size:.72rem;color:var(--muted);line-height:1.4}
+.sw{position:relative;width:38px;height:21px;flex-shrink:0}
+.sw input{opacity:0;width:0;height:0}
+.sw-t{position:absolute;inset:0;border-radius:100px;background:var(--brd2);cursor:pointer;transition:background .2s}
+.sw-t::after{content:'';position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.sw input:checked+.sw-t{background:var(--ac)}
+.sw input:checked+.sw-t::after{transform:translateX(17px)}
+/* advanced collapsible */
+.sc-adv{margin-bottom:1.2rem}
+.sc-adv-btn{width:100%;background:var(--s1);border:1px solid var(--brd);border-radius:var(--r12);padding:.85rem 1.2rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem;font:500 .82rem var(--font);color:var(--muted);cursor:pointer;transition:all .2s;text-align:left}
+.sc-adv-btn:hover{border-color:var(--brd2);color:var(--txt)}
+.sc-adv-btn.open{border-bottom-left-radius:0;border-bottom-right-radius:0;color:var(--txt)}
+.sc-adv-chev{color:var(--dim);transition:transform .25s;flex-shrink:0}
+.sc-adv-btn.open .sc-adv-chev{transform:rotate(90deg)}
+.sc-adv-body{background:var(--s1);border:1px solid var(--brd);border-top:none;border-bottom-left-radius:var(--r12);border-bottom-right-radius:var(--r12);padding:1.1rem;overflow:hidden}
+.fta-inp{width:100%;padding:10px 13px;border-radius:var(--r8);border:1px solid var(--brd);background:var(--s2);color:var(--txt);font-family:var(--mono);font-size:.76rem;resize:vertical;min-height:80px;outline:none;transition:border-color .2s,box-shadow .2s}
+.fta-inp:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--glow)}
+.fta-inp::placeholder{color:var(--dim)}
+/* submit button */
+.sub-btn{width:100%;padding:14px;border-radius:var(--r16);border:none;background:#a5d066;color:#fff;font:600 .95rem var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .25s;overflow:hidden;position:relative;box-shadow:0 4px 20px rgba(165,208,102,.25)}
+.sub-btn::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,.1);opacity:0;transition:opacity .2s}
+.sub-btn:hover::before{opacity:1}
+.sub-btn:hover{transform:translateY(-2px);box-shadow:0 12px 35px rgba(165,208,102,.42)}
+.sub-btn:active{transform:none}
+.sub-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:0 4px 20px rgba(165,208,102,.1)}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;animation:spin .65s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* result card */
+.res-card{margin-top:1.2rem;background:var(--s1);border:1px solid var(--brd);border-radius:var(--r16);overflow:hidden;animation:up .35s cubic-bezier(.16,1,.3,1) both;box-shadow:0 8px 30px rgba(0,0,0,.14)}
+.res-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--s2);border-bottom:1px solid var(--brd)}
+.res-l{display:flex;align-items:center;gap:6px;font:600 .68rem var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.1em;flex:1}
+.rdot{width:7px;height:7px;border-radius:50%;background:var(--grn);box-shadow:0 0 6px rgba(52,211,153,.5)}
+.res-meta{display:flex;align-items:center;gap:5px}
+.res-badge{padding:2px 7px;border-radius:5px;background:var(--s3);border:1px solid var(--brd);font:600 .62rem var(--mono);color:var(--dim)}
+.rbtn{padding:5px 11px;border-radius:6px;border:1px solid var(--brd);background:transparent;color:var(--dim);font:.7rem var(--font);cursor:pointer;transition:all .2s}
+.rbtn:hover{background:var(--s3);color:var(--txt);border-color:var(--brd2)}
+.res-body{padding:1.1rem 1.3rem;max-height:400px;overflow-y:auto;font:400 .74rem var(--mono);line-height:1.85;white-space:pre-wrap}
+
+/* about page */
+.about-pg{max-width:660px;margin:0 auto;padding:88px 1.5rem 5rem}
+.about-pg h1{font:700 1.9rem var(--mono);letter-spacing:-.025em;margin-bottom:1.5rem}
+.about-pg p{color:var(--muted);font-size:.9rem;line-height:1.8;margin-bottom:1rem}
+.about-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:2rem}
+.alink{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:var(--r8);border:1px solid var(--brd);background:var(--s1);color:var(--txt);font:500 .8rem var(--font);transition:all .2s}
+.alink:hover{border-color:var(--ac);color:var(--ac2);background:var(--glow2)}
+
+/* footer */
+footer{position:relative;z-index:10;border-top:1px solid var(--brd);padding:2rem 2.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.ft-logo{display:flex;align-items:center;gap:8px;font:700 .84rem var(--mono);color:var(--muted)}
+.ft-logo-img{width:20px;height:20px;border-radius:5px;opacity:.6;object-fit:cover}
+.ft-logo-fb{width:20px;height:20px;border-radius:5px;background:#a5d066;opacity:.7;display:flex;align-items:center;justify-content:center}
+.ft-links{display:flex;gap:18px}
+.ft-links a{font-size:.75rem;color:var(--dim);transition:color .2s}
+.ft-links a:hover{color:var(--muted)}
+.ft-r{font-size:.72rem;color:var(--dim)}
+
+/* toast */
+.toast{position:fixed;bottom:22px;right:22px;z-index:999;padding:10px 16px;border-radius:10px;background:var(--s3);border:1px solid var(--brd2);font-size:.8rem;display:flex;align-items:center;gap:7px;transform:translateY(14px);opacity:0;pointer-events:none;transition:all .3s cubic-bezier(.16,1,.3,1)}
+.toast.on{transform:none;opacity:1}
+
+/* light */
+body.light{--bg:#f4f4fb;--s1:#fff;--s2:#f0f0f8;--s3:#e8e8f4;--brd:#dcdcec;--brd2:#c8c8e0;--txt:#14142a;--muted:#6060a0;--dim:#9090c0;--glow:rgba(165,208,102,.12);--glow2:rgba(165,208,102,.05)}
+body.light nav{background:rgba(244,244,251,.85)}
+body.light #cvs{opacity:.2}
+
+/* hamburger */
+.nav-burger{display:none;flex-direction:column;justify-content:center;gap:5px;width:34px;height:34px;border-radius:var(--r8);border:1px solid var(--brd);background:transparent;cursor:pointer;padding:7px;transition:all .2s}
+.nav-burger:hover{background:var(--s3)}
+.nav-burger span{display:block;height:1.5px;background:var(--muted);border-radius:2px;transition:all .25s}
+.nav-burger.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
+.nav-burger.open span:nth-child(2){opacity:0;transform:scaleX(0)}
+.nav-burger.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
+/* full-screen mobile menu */
+.mob-menu{display:none;position:fixed;inset:0;z-index:500;background:var(--bg);flex-direction:column;overflow-y:auto}
+.mob-menu.on{display:flex;animation:up .28s cubic-bezier(.16,1,.3,1) both}
+.mob-menu-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 1.25rem;height:60px;border-bottom:1px solid var(--brd);flex-shrink:0}
+.mob-menu-brand{font:700 .9rem var(--mono);color:var(--txt)}
+.mob-close{width:36px;height:36px;border-radius:var(--r8);border:1px solid var(--brd);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .2s}
+.mob-close:hover{background:var(--s3);color:var(--txt)}
+.mob-menu-body{padding:1rem 1.25rem;display:flex;flex-direction:column;gap:4px;flex:1}
+.mob-sec-label{font:600 .62rem var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.12em;padding:.9rem 4px .4rem}
+.mob-menu-divider{height:1px;background:var(--brd);margin:.5rem 0}
+.mob-menu-btn{width:100%;padding:13px 14px;border-radius:var(--r12);border:none;background:transparent;color:var(--muted);font:500 .9rem var(--font);cursor:pointer;text-align:left;transition:all .2s;display:flex;align-items:center;gap:10px;text-decoration:none}
+.mob-menu-btn:hover,.mob-menu-btn.on{background:var(--s2);color:var(--txt);border:1px solid var(--brd)}
+.mob-menu-cta{background:rgba(165,208,102,.08);border:1px solid rgba(165,208,102,.28)!important;color:var(--ac2)!important;font-weight:600!important}
+.mob-menu-cta:hover{background:rgba(165,208,102,.18)!important}
+.mob-theme-row{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-radius:var(--r12);background:var(--s1);border:1px solid var(--brd);margin-top:2px}
+.mob-theme-lbl{display:flex;align-items:center;gap:10px;font:500 .9rem var(--font);color:var(--muted)}
+
+/* responsive */
+@media(max-width:768px){
+  .feat-grid,.steps,.stats,.code-pair,.cli-wrap,.install-wrap,.fmt-grid{grid-template-columns:1fr}
+  .code-examples-grid{grid-template-columns:1fr!important}
+  .step-conn{display:none}
+  .sc-row,.sc-opts-grid{grid-template-columns:1fr}
+  .fmt-pick{flex-wrap:wrap}
+  nav{padding:0 1rem}
+  .nav-tabs{display:none}
+  .nav-right{display:none}
+  .nav-burger{display:flex}
+  section{padding:3rem 1rem}
+  /* text size reductions */
+  .hero h1{font-size:clamp(1.8rem,8vw,2.8rem)}
+  .hero-sub{font-size:.9rem}
+  .s-title{font-size:clamp(1.3rem,5vw,1.8rem)!important}
+  .term-body{font-size:.68rem;line-height:1.7;padding:1rem 1.1rem}
+  .code-body{font-size:.65rem!important;line-height:1.75;padding:1rem 1.1rem}
+  .code-card{overflow-x:auto}
+  .cmp-table table{font-size:.68rem}
+  th,td{padding:8px 9px}
+  .feat-desc,.step p,.fmt-desc,.opt-desc,.istep-body p{font-size:.74rem}
+  .stat-n{font-size:1.5rem}
+  footer{padding:1.5rem 1rem;flex-direction:column;align-items:flex-start;gap:.75rem}
+}
+</style>
 </head>
-<body class="flex bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+<body>
 
-  <!-- Sidebar -->
-  <aside class="w-64 h-screen bg-white dark:bg-gray-800 shadow-md fixed flex flex-col">
-    <div class="p-6 text-xl font-bold border-b dark:border-gray-700"><img src="https://raw.githubusercontent.com/scrapesome/scrapesome/refs/heads/main/docs/assets/images/favicon.png" width="150" height="150"/>
-      <h1 class="text-3xl font-bold mb-6">scrapesome</h1></div>
-    
-    <nav class="flex-1 p-4 space-y-2">
-      <button onclick="showPage('scraperPage')" class="w-full text-left px-3 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">🧰 Scraper</button>
-      <button onclick="showPage('aboutPage')" class="w-full text-left px-3 py-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">ℹ️ About</button>
-    </nav>
+<canvas id="cvs"></canvas>
 
-    <div class="p-4 border-t dark:border-gray-700 text-sm space-y-1">
-      <a href="https://github.com/scrapesome/scrapesome" target="_blank" class="block hover:underline">GitHub</a>
-      <a href="https://pypi.org/project/scrapesome/" target="_blank" class="block hover:underline">PyPI</a>
-      <a href="http://scrapesome.github.io/scrapesome/" target="_blank" class="block hover:underline">Docs</a>
+<!-- NAV -->
+<nav>
+  <div class="nav-logo" onclick="goPage('home')">
+    <img class="nav-logo-img" src="https://raw.githubusercontent.com/scrapesome/scrapesome/refs/heads/main/docs/assets/images/favicon.png" alt="scrapesome" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+    <div class="nav-logo-fb" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#fff" stroke-width="1.4"/><path d="M7 3v4l2.5 2" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg>
+    </div>
+    <!-- <span>scrapesome</span> -->
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab on" id="nt-home" onclick="goPage('home')">Home</button>
+    <button class="nav-tab" id="nt-about" onclick="goPage('about')">About</button>
+  </div>
+  <button class="nav-burger" id="nav-burger" onclick="toggleMobMenu()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="nav-right">
+    <a href="https://github.com/scrapesome/scrapesome" target="_blank" class="nav-icon nav-gh" title="GitHub">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.51 2.87 8.34 6.84 9.69.5.09.68-.22.68-.49v-1.71c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.1-1.5-1.1-1.5-.9-.63.07-.62.07-.62 1 .07 1.52 1.05 1.52 1.05.89 1.56 2.33 1.11 2.9.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05A9.42 9.42 0 0112 7.18c.85 0 1.7.12 2.5.34 1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.81-4.58 5.06.36.32.68.94.68 1.9v2.82c0 .27.18.59.69.49A10.22 10.22 0 0022 12.23C22 6.58 17.52 2 12 2z"/></svg>
+    </a>
+    <button class="nav-icon" onclick="toggleTheme()" id="themeBtn">☀️</button>
+    <button class="nav-cta" onclick="goPage('scraper')">Launch tool →</button>
+  </div>
+</nav>
+
+<!-- MOBILE MENU (full-screen) -->
+<div class="mob-menu" id="mob-menu">
+  <div class="mob-menu-hdr">
+    <span class="mob-menu-brand">menu</span>
+    <button class="mob-close" onclick="closeMobMenu()" aria-label="Close">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div class="mob-menu-body">
+    <span class="mob-sec-label">Navigate</span>
+    <button class="mob-menu-btn" id="mob-nt-home" onclick="goPage('home');closeMobMenu()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.7"/><polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" stroke-width="1.7"/></svg>
+      Home
+    </button>
+    <button class="mob-menu-btn" id="mob-nt-about" onclick="goPage('about');closeMobMenu()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.7"/><path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      About
+    </button>
+    <div class="mob-menu-divider"></div>
+    <span class="mob-sec-label">Actions</span>
+    <a class="mob-menu-btn" href="https://github.com/scrapesome/scrapesome" target="_blank" onclick="closeMobMenu()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.51 2.87 8.34 6.84 9.69.5.09.68-.22.68-.49v-1.71c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.1-1.5-1.1-1.5-.9-.63.07-.62.07-.62 1 .07 1.52 1.05 1.52 1.05.89 1.56 2.33 1.11 2.9.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05A9.42 9.42 0 0112 7.18c.85 0 1.7.12 2.5.34 1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.81-4.58 5.06.36.32.68.94.68 1.9v2.82c0 .27.18.59.69.49A10.22 10.22 0 0022 12.23C22 6.58 17.52 2 12 2z"/></svg>
+      GitHub
+    </a>
+    <button class="mob-menu-btn mob-menu-cta" onclick="goPage('scraper');closeMobMenu()">
+      <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7.5 3l4.5 4-4.5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Launch tool
+    </button>
+    <div class="mob-menu-divider"></div>
+    <span class="mob-sec-label">Preferences</span>
+    <div class="mob-theme-row">
+      <span class="mob-theme-lbl">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.7"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        Light mode
+      </span>
+      <label class="sw"><input type="checkbox" id="mob-theme-chk" onchange="toggleThemeFromMenu()"/><div class="sw-t"></div></label>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ HOME PAGE ══════ -->
+<div id="page-home" class="page on">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="pill"><span class="pulse"></span>Open source · MIT · pip install scrapesome</div>
+
+    <h1>Scrape any page.<br><span class="grad">Get clean data out.</span></h1>
+    <p class="hero-sub">A lightweight Python library with sync &amp; async support, automatic Playwright fallback for JS-heavy pages, and built-in output formatting. Zero boilerplate.</p>
+
+    <div class="hero-btns">
+      <button class="btn-p" onclick="goPage('scraper')">
+        Try the scraper
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7.5 3l4.5 4-4.5 4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <a class="btn-o" href="https://github.com/scrapesome/scrapesome" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.51 2.87 8.34 6.84 9.69.5.09.68-.22.68-.49v-1.71c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.1-1.5-1.1-1.5-.9-.63.07-.62.07-.62 1 .07 1.52 1.05 1.52 1.05.89 1.56 2.33 1.11 2.9.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05A9.42 9.42 0 0112 7.18c.85 0 1.7.12 2.5.34 1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.81-4.58 5.06.36.32.68.94.68 1.9v2.82c0 .27.18.59.69.49A10.22 10.22 0 0022 12.23C22 6.58 17.52 2 12 2z"/></svg>
+        GitHub
+      </a>
+      <a class="btn-o" href="http://scrapesome.github.io/scrapesome/" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V5a2 2 0 012-2h12a2 2 0 012 2v14M4 19h16M8 8h8M8 12h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        Docs
+      </a>
     </div>
 
-    <div class="p-4">
-      <button onclick="toggleDarkMode()" class="w-full px-3 py-2 border rounded text-sm dark:border-gray-600">🌓 Toggle Dark Mode</button>
+    <!-- install strip -->
+    <div class="install-strip">
+      <span class="ps1">$</span>
+      <span>pip install </span><span class="pkg">scrapesome</span>
+      <button class="copy-strip" onclick="copyText('pip install scrapesome')" title="Copy">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="1.6"/></svg>
+      </button>
     </div>
-  </aside>
 
-  <!-- Main Content -->
-  <main class="ml-64 p-8 w-full max-w-5xl">
-    
-    <!-- Scraper Page -->
-    <section id="scraperPage">
-      <!-- <img src="https://raw.githubusercontent.com/scrapesome/scrapesome/refs/heads/main/docs/assets/images/favicon.png" width="150" height="150"/>
-      <h1 class="text-3xl font-bold mb-6">scrapesome</h1> -->
-      <form id="scrapeForm" class="space-y-4">
-        <div>
-          <label for="url" class="block font-semibold">URL *</label>
-          <input id="url" name="url" type="url" required class="w-full px-4 py-2 border dark:bg-gray-700 dark:border-gray-600 rounded" placeholder="https://example.com">
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label for="outputFormat" class="block font-semibold">Output Format</label>
-            <select id="outputFormat" class="w-full px-3 py-2 border dark:bg-gray-700 dark:border-gray-600 rounded">
-              <option value="html">HTML</option>
-              <option value="json">JSON</option>
-              <option value="text">Text</option>
-              <option value="markdown">Markdown</option>
-            </select>
-          </div>
-
-          <div>
-            <label for="timeout" class="block font-semibold">Timeout (sec)</label>
-            <input id="timeout" type="range" min="1" max="30" value="10" class="w-full">
-            <div id="timeoutValue" class="text-sm text-right">10s</div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label for="forcePlaywright" class="block font-semibold">Force Playwright</label>
-            <select id="forcePlaywright" class="w-full px-3 py-2 border dark:bg-gray-700 dark:border-gray-600 rounded">
-              <option value="false">False</option>
-              <option value="true">True</option>
-            </select>
-          </div>
-
-          <div>
-            <label for="allowRedirects" class="block font-semibold">Allow Redirects</label>
-            <select id="allowRedirects" class="w-full px-3 py-2 border dark:bg-gray-700 dark:border-gray-600 rounded">
-              <option value="true">True</option>
-              <option value="false">False</option>
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label for="headers" class="block font-semibold">Headers (JSON format)</label>
-          <textarea id="headers" rows="3" placeholder='{"User-Agent": "Mozilla/5.0"}' class="w-full px-4 py-2 border dark:bg-gray-700 dark:border-gray-600 rounded"></textarea>
-        </div>
-
-        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-semibold">
-          Scrape Now
-        </button>
-      </form>
-
-      <div id="result" class="mt-6 hidden border-t pt-4 dark:border-gray-600">
-        <h2 class="text-lg font-semibold">Result</h2>
-        <pre id="output" class="whitespace-pre-wrap bg-gray-100 dark:bg-gray-700 p-3 rounded mt-2 max-h-64 overflow-auto"></pre>
+    <!-- Terminal showing Python usage -->
+    <div class="terminal">
+      <div class="term-bar">
+        <div class="td td1"></div><div class="td td2"></div><div class="td td3"></div>
+        <span class="term-file">example.py</span>
       </div>
-    </section>
+      <div class="term-body"><span class="tc-k">from</span> <span class="tc-v">scrapesome</span> <span class="tc-k">import</span> <span class="tc-fn">sync_scraper</span>
+<span></span>
+<span class="tc-cm"># returns clean Markdown, no setup needed</span>
+<span class="tc-n">content</span> = <span class="tc-fn">sync_scraper</span>(
+  <span class="tc-s">"https://example.com"</span>,
+  output_format_type=<span class="tc-s">"markdown"</span>,
+  timeout=<span class="tc-o">10</span>,
+  force_playwright=<span class="tc-k">False</span>,
+  allow_redirects=<span class="tc-k">True</span>
+)
+<span></span>
+<span class="tc-k">print</span>(<span class="tc-n">content</span>)<span class="cur"></span></div>
+    </div>
+  </div>
 
-    <!-- About Page -->
-    <section id="aboutPage" class="hidden">
-      <h1 class="text-3xl font-bold mb-4">About</h1>
-      <p class="mb-2">This is a modern web scraper interface powered by a FastAPI backend.</p>
-      <p class="mb-2">Use this tool to scrape websites using standard HTTP requests or Playwright-powered headless browsing.</p>
-      <p>Customize the headers, timeout, and format as needed.</p>
-    </section>
+  <!-- STATS -->
+  <section style="padding:0 2rem 5rem;position:relative;z-index:10">
+    <div class="stats">
+      <div class="stat"><div class="stat-n"><span>2</span></div><div class="stat-l">Fetch engines (HTTP + Playwright)</div></div>
+      <div class="stat"><div class="stat-n"><span>4</span></div><div class="stat-l">Output formats</div></div>
+      <div class="stat"><div class="stat-n"><span>0</span></div><div class="stat-l">Required config to get started</div></div>
+      <div class="stat"><div class="stat-n"><span>MIT</span></div><div class="stat-l">Open-source license</div></div>
+    </div>
+  </section>
 
-  </main>
+  <!-- FEATURES -->
+  <section>
+    <div class="center">
+      <div class="s-label">Core features</div>
+      <h2 class="s-title">Robust scraping.<br>Minimal setup.</h2>
+      <p class="s-sub">Handles the edge cases — retries, JavaScript, timeouts, redirects — so you don't have to wire them up yourself.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat">
+        <div class="ficon fi-v">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#c4e48a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="feat-name">Sync &amp; Async support</div>
+        <div class="feat-desc">Both <code style="font-family:var(--mono);font-size:.72rem;color:var(--ac2)">sync_scraper</code> and <code style="font-family:var(--mono);font-size:.72rem;color:var(--ac2)">async_scraper</code> built in. Use whichever fits your stack — no wrappers needed.</div>
+      </div>
+      <div class="feat">
+        <div class="ficon fi-b">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="5" rx="9" ry="3" stroke="#38bdf8" stroke-width="1.7"/><path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5" stroke="#38bdf8" stroke-width="1.7"/><path d="M3 11v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6" stroke="#38bdf8" stroke-width="1.7"/></svg>
+        </div>
+        <div class="feat-name">Playwright fallback</div>
+        <div class="feat-desc">Automatically falls back to a headless Chromium browser when plain HTTP gets a 403 or returns blank JS-rendered content.</div>
+      </div>
+      <div class="feat">
+        <div class="ficon fi-g">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" stroke="#34d399" stroke-width="1.7"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke="#34d399" stroke-width="1.7"/></svg>
+        </div>
+        <div class="feat-name">Smart retries</div>
+        <div class="feat-desc">Built-in retry logic with intelligent fallbacks. Transient failures don't crash your pipeline.</div>
+      </div>
+      <div class="feat">
+        <div class="ficon fi-y">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="2" stroke="#fbbf24" stroke-width="1.7"/><rect x="14" y="3" width="7" height="7" rx="2" stroke="#fbbf24" stroke-width="1.7"/><rect x="3" y="14" width="7" height="7" rx="2" stroke="#fbbf24" stroke-width="1.7"/><rect x="14" y="14" width="7" height="7" rx="2" stroke="#fbbf24" stroke-width="1.7"/></svg>
+        </div>
+        <div class="feat-name">4 output formats</div>
+        <div class="feat-desc">Get back HTML, plain text, Markdown, or JSON from any page — selected per-request, zero extra parsing.</div>
+      </div>
+      <div class="feat">
+        <div class="ficon fi-r">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 10h16M4 14h10M4 18h7" stroke="#f87171" stroke-width="1.7" stroke-linecap="round"/></svg>
+        </div>
+        <div class="feat-name">Custom headers &amp; agents</div>
+        <div class="feat-desc">Pass any HTTP header or custom User-Agent list. Control redirect following and timeouts per request.</div>
+      </div>
+      <div class="feat">
+        <div class="ficon fi-t">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M14 3v4a1 1 0 001 1h4" stroke="#2dd4bf" stroke-width="1.7" stroke-linecap="round"/><path d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h7l5 5v11a2 2 0 01-2 2z" stroke="#2dd4bf" stroke-width="1.7"/><path d="M9 13h6M9 17h4" stroke="#2dd4bf" stroke-width="1.7" stroke-linecap="round"/></svg>
+        </div>
+        <div class="feat-name">File saving &amp; .env config</div>
+        <div class="feat-desc">Save scraped output directly to disk. Configure defaults via <code style="font-family:var(--mono);font-size:.72rem;color:var(--ac2)">.env</code> — timeouts, log level, user agents, format.</div>
+      </div>
+    </div>
+  </section>
 
-  <script>
-    // Timeout range update
-const timeoutRange = document.getElementById("timeout");
-const timeoutValue = document.getElementById("timeoutValue");
-timeoutRange.addEventListener("input", () => {
-  timeoutValue.textContent = `${timeoutRange.value}s`;
-});
+  <!-- HOW IT WORKS -->
+  <section style="background:var(--s1);border-top:1px solid var(--brd);border-bottom:1px solid var(--brd)">
+    <div class="center">
+      <div class="s-label">How it works</div>
+      <h2 class="s-title">Three steps to clean data</h2>
+      <p class="s-sub">scrapesome picks the fastest path automatically — fallback only fires when needed.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-bg-n">01</div>
+        <div class="step-icon fi-v">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M8 9l-3 3 3 3M16 9l3 3-3 3M12 5l-2 14" stroke="#c4e48a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="step-badge">Step 01</div>
+        <h3>Call the scraper</h3>
+        <p>Import <code class="code-inline">sync_scraper</code> or <code class="code-inline">async_scraper</code> and pass a URL. That's the minimum. All other options are optional.</p>
+        <div class="step-tag">
+          <span class="step-tag-dot" style="background:var(--ac2)"></span>
+          Input: URL + optional params
+        </div>
+      </div>
+      <div class="step-conn">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10h12M12 5l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="step">
+        <div class="step-bg-n">02</div>
+        <div class="step-icon fi-b">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="step-badge">Step 02</div>
+        <h3>Auto-select engine</h3>
+        <p>scrapesome tries a fast HTTP fetch first. If it gets a 403, blank body, or detects JS-rendered content, it seamlessly retries with Playwright — or you can force it.</p>
+        <div class="step-tag">
+          <span class="step-tag-dot" style="background:var(--sky)"></span>
+          Auto-detects: HTTP or Playwright
+        </div>
+      </div>
+      <div class="step-conn">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10h12M12 5l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="step">
+        <div class="step-bg-n">03</div>
+        <div class="step-icon fi-g">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="#34d399" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="step-badge">Step 03</div>
+        <h3>Receive formatted output</h3>
+        <p>Get back clean HTML, text, Markdown, or JSON — ready to store, search, embed into an LLM pipeline, or save to a file.</p>
+        <div class="step-tag">
+          <span class="step-tag-dot" style="background:var(--grn)"></span>
+          Output: HTML · Text · Markdown · JSON
+        </div>
+      </div>
+    </div>
+  </section>
 
-// Page switching
-function showPage(pageId) {
-  document.getElementById("scraperPage").classList.add("hidden");
-  document.getElementById("aboutPage").classList.add("hidden");
-  document.getElementById(pageId).classList.remove("hidden");
+  <!-- OUTPUT FORMATS -->
+  <section>
+    <div class="center">
+      <div class="s-label">Output formats</div>
+      <h2 class="s-title">Data exactly how you need it</h2>
+      <p class="s-sub">Choose per request with the <code class="code-inline">output_format_type</code> parameter. Switch freely between formats.</p>
+    </div>
+    <div class="fmt-grid">
+      <!-- HTML -->
+      <div class="fmt">
+        <div class="fmt-icon fi-b" style="width:44px;height:44px;border-radius:12px;margin:0 auto 1rem">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M4 3l1.5 16L12 21l6.5-2L20 3H4z" stroke="#38bdf8" stroke-width="1.7" stroke-linejoin="round"/>
+            <path d="M8 8h8M8.5 12h7l-.5 4-3 1-3-1-.2-2" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="fmt-name">HTML</div>
+        <div class="fmt-desc">Full raw markup — ideal for DOM parsing, archiving, or feeding into an HTML parser</div>
+      </div>
+      <!-- JSON -->
+      <div class="fmt">
+        <div class="fmt-icon fi-y" style="width:44px;height:44px;border-radius:12px;margin:0 auto 1rem">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M8 3H6a2 2 0 00-2 2v3c0 1.1-.9 2-2 2 1.1 0 2 .9 2 2v3a2 2 0 002 2h2" stroke="#fbbf24" stroke-width="1.7" stroke-linecap="round"/>
+            <path d="M16 3h2a2 2 0 012 2v3c0 1.1.9 2 2 2-1.1 0-2 .9-2 2v3a2 2 0 01-2 2h-2" stroke="#fbbf24" stroke-width="1.7" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="fmt-name">JSON</div>
+        <div class="fmt-desc">Structured key-value output — title, description, URL — perfect for APIs and databases</div>
+      </div>
+      <!-- Markdown -->
+      <div class="fmt">
+        <div class="fmt-icon fi-v" style="width:44px;height:44px;border-radius:12px;margin:0 auto 1rem">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="5" width="20" height="14" rx="2" stroke="#c4e48a" stroke-width="1.7"/>
+            <path d="M6 15V9l3 3.5L12 9v6" stroke="#c4e48a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M15 13l2 2 2-2" stroke="#c4e48a" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M17 15V9" stroke="#c4e48a" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="fmt-name">Markdown</div>
+        <div class="fmt-desc">Readable structured text — great for LLM context, documentation, or readable exports</div>
+      </div>
+      <!-- Text -->
+      <div class="fmt">
+        <div class="fmt-icon fi-g" style="width:44px;height:44px;border-radius:12px;margin:0 auto 1rem">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M4 7V5h16v2" stroke="#34d399" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 5v14M9 19h6" stroke="#34d399" stroke-width="1.7" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="fmt-name">Text</div>
+        <div class="fmt-desc">Stripped plain text — minimal noise, ideal for search indexing, NLP, or summarisation</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CODE EXAMPLES -->
+  <section style="background:var(--s1);border-top:1px solid var(--brd);border-bottom:1px solid var(--brd)">
+    <div style="max-width:860px;margin:0 auto">
+      <div style="margin-bottom:2rem">
+        <div class="s-label">Usage</div>
+        <h3 class="s-title" style="font-size:1.5rem">Sync and async,<br>your choice</h3>
+        <p class="s-sub" style="max-width:none;margin-bottom:1.2rem">Both modes are first-class citizens. Drop into an async pipeline or use the synchronous API for scripts — same options, same output.</p>
+        <ul class="check-list" style="margin-bottom:1.2rem">
+          <li>Force Playwright for JS-rendered SPAs</li>
+          <li>Set custom User-Agent strings</li>
+          <li>Toggle redirect following</li>
+          <li>Save output directly to file</li>
+          <li>Configure defaults via <code class="code-inline">.env</code></li>
+        </ul>
+        <div>
+          <a class="btn-p" href="http://scrapesome.github.io/scrapesome/" target="_blank" style="font-size:.82rem;padding:10px 20px;display:inline-flex;color:#fff">
+            Read the docs
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="margin-left:4px"><path d="M2 6.5h9M7 2.5l4 4-4 4" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </div>
+      </div>
+      <div class="code-examples-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start">
+        <!-- sync -->
+        <div class="code-card">
+          <div class="code-hdr">
+            <div class="code-lang"><div class="code-lang-dot"></div>Synchronous</div>
+            <button class="ccopy" onclick="copyCode('sync-code')">Copy</button>
+          </div>
+          <div class="code-body" id="sync-code"><span class="tc-k">from</span> <span class="tc-v">scrapesome</span> <span class="tc-k">import</span> <span class="tc-fn">sync_scraper</span>
+
+<span class="tc-cm"># basic</span>
+<span class="tc-n">html</span> = <span class="tc-fn">sync_scraper</span>(<span class="tc-s">"https://example.com"</span>)
+
+<span class="tc-cm"># with options</span>
+<span class="tc-n">result</span> = <span class="tc-fn">sync_scraper</span>(
+  <span class="tc-s">"https://example.com"</span>,
+  output_format_type=<span class="tc-s">"json"</span>,
+  force_playwright=<span class="tc-k">True</span>,
+  allow_redirects=<span class="tc-k">True</span>,
+  user_agents=[<span class="tc-s">"Mozilla/5.0"</span>]
+)
+
+<span class="tc-cm"># save to file</span>
+<span class="tc-n">result</span> = <span class="tc-fn">sync_scraper</span>(
+  <span class="tc-s">"https://example.com"</span>,
+  output_format_type=<span class="tc-s">"markdown"</span>,
+  save_to_file=<span class="tc-k">True</span>,
+  file_name=<span class="tc-s">"output"</span>
+)
+<span class="tc-k">print</span>(result[<span class="tc-s">"file"</span>])  <span class="tc-cm"># output.md</span></div>
+        </div>
+        <!-- async -->
+        <div class="code-card">
+          <div class="code-hdr">
+            <div class="code-lang"><div class="code-lang-dot" style="background:var(--sky)"></div>Asynchronous</div>
+            <button class="ccopy" onclick="copyCode('async-code')">Copy</button>
+          </div>
+          <div class="code-body" id="async-code"><span class="tc-k">import</span> <span class="tc-v">asyncio</span>
+<span class="tc-k">from</span> <span class="tc-v">scrapesome</span> <span class="tc-k">import</span> <span class="tc-fn">async_scraper</span>
+
+<span class="tc-n">html</span> = asyncio.<span class="tc-fn">run</span>(
+  <span class="tc-fn">async_scraper</span>(<span class="tc-s">"https://example.com"</span>)
+)
+
+<span class="tc-cm"># or inside an async function</span>
+<span class="tc-k">async def</span> <span class="tc-fn">scrape</span>():
+  <span class="tc-n">content</span> = <span class="tc-k">await</span> <span class="tc-fn">async_scraper</span>(
+    <span class="tc-s">"https://example.com"</span>,
+    output_format_type=<span class="tc-s">"markdown"</span>,
+    force_playwright=<span class="tc-k">False</span>
+  )
+  <span class="tc-k">return</span> <span class="tc-n">content</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLI -->
+  <section>
+    <div class="cli-wrap">
+      <div class="cli-info">
+        <div class="s-label">CLI</div>
+        <h3 class="s-title" style="font-size:1.5rem">Scrape from the<br>command line too</h3>
+        <p class="s-sub" style="max-width:none;margin-bottom:1rem">Install with CLI extras and use <code class="code-inline">scrapesome scrape</code> from any terminal. Same options as the Python API.</p>
+        <div class="install-strip" style="display:inline-flex;margin-bottom:1.5rem">
+          <span class="ps1">$</span>
+          <span>pip install </span><span class="pkg">scrapesome[cli]</span>
+          <button class="copy-strip" onclick="copyText('pip install scrapesome[cli]')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="1.6"/></svg>
+          </button>
+        </div>
+        <div class="cli-options">
+          <div class="cli-opt"><span class="opt-flag">--url</span><span class="opt-desc">Target URL to scrape</span></div>
+          <div class="cli-opt"><span class="opt-flag">--output-format</span><span class="opt-desc">html · json · markdown · text</span></div>
+          <div class="cli-opt"><span class="opt-flag">--force-playwright</span><span class="opt-desc">Force JS rendering via Playwright</span></div>
+          <div class="cli-opt"><span class="opt-flag">--async-mode</span><span class="opt-desc">Use asynchronous scraping</span></div>
+          <div class="cli-opt"><span class="opt-flag">--save-to-file -s</span><span class="opt-desc">Save output to file</span></div>
+          <div class="cli-opt"><span class="opt-flag">--file-name -n</span><span class="opt-desc">Base filename (extension auto-added)</span></div>
+        </div>
+      </div>
+      <div class="code-card">
+        <div class="code-hdr">
+          <div class="code-lang"><div class="code-lang-dot" style="background:var(--grn)"></div>Terminal</div>
+          <button class="ccopy" onclick="copyCode('cli-code')">Copy</button>
+        </div>
+        <div class="code-body" id="cli-code"><span class="tc-cm"># basic scrape</span>
+<span class="tc-s">scrapesome scrape</span> --url https://example.com
+
+<span class="tc-cm"># markdown output</span>
+<span class="tc-s">scrapesome scrape</span> \
+  --url https://example.com \
+  --output-format markdown
+
+<span class="tc-cm"># save to file</span>
+<span class="tc-s">scrapesome scrape</span> \
+  --url https://example.com \
+  --output-format markdown \
+  --save-to-file \
+  --file-name output
+<span class="tc-cm"># → saves output.md</span>
+
+<span class="tc-cm"># force JS rendering + async</span>
+<span class="tc-s">scrapesome scrape</span> \
+  --url https://example.com \
+  --force-playwright \
+  --async-mode \
+  --output-format json</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARISON -->
+  <section style="background:var(--s1);border-top:1px solid var(--brd);border-bottom:1px solid var(--brd)">
+    <div class="center">
+      <div class="s-label">Why scrapesome</div>
+      <h2 class="s-title">How it compares</h2>
+      <p class="s-sub">Most alternatives require you to wire up retries, fallbacks, and output parsing yourself. scrapesome ships all of that.</p>
+    </div>
+    <div class="cmp-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>scrapesome</th>
+            <th>Playwright (py)</th>
+            <th>Requests-HTML</th>
+            <th>Scrapy</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>JS rendering</td><td class="yes">✓ Auto fallback</td><td class="yes">✓ Always</td><td class="part">~ Partial</td><td class="part">~ Plugin</td></tr>
+          <tr><td>Auto 403/blank fallback</td><td class="yes">✓ Seamless</td><td class="no">✗ Manual</td><td class="no">✗ No</td><td class="no">✗ Manual</td></tr>
+          <tr><td>Sync + Async</td><td class="yes">✓ Built-in</td><td class="no">✗ Async only</td><td class="no">✗ Sync only</td><td class="no">✗ Async only</td></tr>
+          <tr><td>JSON / Markdown / Text output</td><td class="yes">✓ Built-in</td><td class="no">✗ Manual</td><td class="no">✗ Basic</td><td class="no">✗ Pipeline</td></tr>
+          <tr><td>Retries + smart defaults</td><td class="yes">✓ Built-in</td><td class="no">✗ Manual</td><td class="no">✗ Limited</td><td class="part">~ Settings</td></tr>
+          <tr><td>pip install &amp; go</td><td class="yes">✓ &lt; 1 min</td><td class="no">✗ Browser setup</td><td class="yes">✓ Yes</td><td class="no">✗ Project setup</td></tr>
+          <tr><td>.env configuration</td><td class="yes">✓ Optional</td><td class="no">✗ Code only</td><td class="no">✗ Hardcoded</td><td class="part">~ Project</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- INSTALLATION -->
+  <section>
+    <div class="install-wrap">
+      <div>
+        <div class="s-label">Installation</div>
+        <h3 class="s-title" style="font-size:1.5rem">Up and running<br>in under a minute</h3>
+        <p class="s-sub" style="max-width:none">Core library works out of the box. Playwright is only needed if you want JavaScript rendering.</p>
+      </div>
+      <div>
+        <div class="install-steps">
+          <div class="istep">
+            <div class="istep-n">1</div>
+            <div class="istep-body">
+              <h4>Install the library</h4>
+              <p>Run <code class="code-inline">pip install scrapesome</code>. That's enough to start scraping static pages immediately.</p>
+            </div>
+          </div>
+          <div class="istep">
+            <div class="istep-n">2</div>
+            <div class="istep-body">
+              <h4>Install Playwright (optional)</h4>
+              <p>For JS-rendered pages: <code class="code-inline">pip install playwright</code> then <code class="code-inline">playwright install</code> to download browsers.</p>
+            </div>
+          </div>
+          <div class="istep">
+            <div class="istep-n">3</div>
+            <div class="istep-body">
+              <h4>System deps on Linux</h4>
+              <p>Run <code class="code-inline">playwright install-deps</code> on Ubuntu/Debian to install required system libraries for Playwright.</p>
+            </div>
+          </div>
+          <div class="istep">
+            <div class="istep-n">4</div>
+            <div class="istep-body">
+              <h4>Optional: .env config</h4>
+              <p>Create a <code class="code-inline">.env</code> file to set <code class="code-inline">LOG_LEVEL</code>, <code class="code-inline">OUTPUT_FORMAT</code>, <code class="code-inline">FETCH_PAGE_TIMEOUT</code>, and <code class="code-inline">USER_AGENTS</code> as defaults.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="ft-logo">
+      <img class="ft-logo-img" src="https://raw.githubusercontent.com/scrapesome/scrapesome/refs/heads/main/docs/assets/images/favicon.png" alt="logo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+      <div class="ft-logo-fb" style="display:none"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" stroke="#fff" stroke-width="1.2"/></svg></div>
+      scrapesome
+    </div>
+    <div class="ft-links">
+      <a href="https://github.com/scrapesome/scrapesome" target="_blank">GitHub</a>
+      <a href="https://pypi.org/project/scrapesome/" target="_blank">PyPI</a>
+      <a href="http://scrapesome.github.io/scrapesome/" target="_blank">Docs</a>
+      <a onclick="goPage('about')" style="cursor:pointer">About</a>
+    </div>
+    <div class="ft-r">© 2026 All rights reserved</div>
+  </footer>
+
+</div><!-- /home -->
+
+<!-- ══════ SCRAPER PAGE ══════ -->
+<div id="page-scraper" class="page">
+  <div class="scraper-page">
+
+    <!-- Header -->
+    <div class="page-head">
+      <div class="page-head-row">
+        <div class="page-head-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#fff" stroke-width="1.8"/><path d="M21 21l-4.35-4.35" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <h2>Web Scraper</h2>
+        <div class="page-head-live"><span class="pulse"></span>Live</div>
+      </div>
+      <p>Enter a URL, pick your format, and run. Results appear below.</p>
+    </div>
+
+    <!-- URL bar -->
+    <div class="url-bar">
+      <div class="url-bar-ic">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.6"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke="currentColor" stroke-width="1.6"/></svg>
+      </div>
+      <input id="s-url" type="url" placeholder="https://example.com" spellcheck="false" autocomplete="off"/>
+    </div>
+
+    <!-- Format + Timeout -->
+    <div class="sc-row">
+      <div class="sc-box">
+        <span class="sc-lbl">Output format</span>
+        <div class="fmt-pick">
+          <label class="fmt-opt"><input type="radio" name="sfmt" value="html" checked/><span>HTML</span></label>
+          <label class="fmt-opt"><input type="radio" name="sfmt" value="json"/><span>JSON</span></label>
+          <label class="fmt-opt"><input type="radio" name="sfmt" value="markdown"/><span>MD</span></label>
+          <label class="fmt-opt"><input type="radio" name="sfmt" value="text"/><span>Text</span></label>
+        </div>
+      </div>
+      <div class="sc-box">
+        <span class="sc-lbl">Timeout</span>
+        <div class="rrow">
+          <input id="s-to" type="range" min="1" max="30" value="10" class="frange"/>
+          <span class="rval" id="s-tv">10s</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toggle option cards -->
+    <div class="sc-opts-grid">
+      <div class="sc-tog-card" id="card-pw">
+        <div class="sc-tog-top">
+          <div class="sc-tog-icon fi-b">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#38bdf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <label class="sw"><input type="checkbox" id="s-pw"/><div class="sw-t"></div></label>
+        </div>
+        <div class="tog-info">
+          <div class="tl">Force Playwright</div>
+          <div class="tog-d">Skip HTTP — go straight to headless browser</div>
+        </div>
+      </div>
+      <div class="sc-tog-card active" id="card-rd">
+        <div class="sc-tog-top">
+          <div class="sc-tog-icon fi-g">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M9 14L4 9l5-5M4 9h16M15 10l5 5-5 5" stroke="#34d399" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <label class="sw"><input type="checkbox" id="s-redir" checked/><div class="sw-t"></div></label>
+        </div>
+        <div class="tog-info">
+          <div class="tl">Allow redirects</div>
+          <div class="tog-d">Follow 3xx responses automatically</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Advanced collapsible -->
+    <div class="sc-adv">
+      <button class="sc-adv-btn" id="sc-adv-btn" onclick="toggleAdv()">
+        <span style="display:flex;align-items:center;gap:7px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          Advanced — custom headers
+        </span>
+        <svg class="sc-adv-chev" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="sc-adv-body" id="sc-adv-body" style="display:none">
+        <label style="display:block;font:600 .65rem var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin-bottom:7px">
+          Custom headers <span style="color:var(--dim);text-transform:none;letter-spacing:0;font-weight:400">(JSON, optional)</span>
+        </label>
+        <textarea id="s-hdr" class="fta-inp" placeholder='{"User-Agent": "Mozilla/5.0"}' spellcheck="false"></textarea>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <button id="s-btn" class="sub-btn" onclick="doScrape()">
+      <span id="s-txt">Scrape now</span>
+      <span id="s-spin" class="spin" style="display:none"></span>
+      <svg id="s-arr" width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2 7.5h11M8.5 3l4.5 4.5L8.5 12" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+
+    <!-- Result -->
+    <div id="s-res" class="res-card" style="display:none">
+      <div class="res-bar">
+        <div class="res-l"><span class="rdot"></span>Output</div>
+        <div class="res-meta">
+          <span class="res-badge" id="res-fmt-badge">HTML</span>
+        </div>
+        <button class="rbtn" onclick="copyResult()">Copy</button>
+      </div>
+      <div class="res-body" id="s-out"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════ ABOUT PAGE ══════ -->
+<div id="page-about" class="page">
+  <div class="about-pg">
+    <h1>About scrapesome</h1>
+    <p>scrapesome is a lightweight, flexible Python web scraping library with both synchronous and asynchronous support. It handles the common pain points — JavaScript rendering, retries, redirects, timeouts, and output formatting — so you can focus on the data, not the plumbing.</p>
+    <p>The library uses plain HTTP requests first for speed. When a page returns a 403 or blank JS-rendered body, it automatically falls back to Playwright (headless Chromium). You can also force Playwright directly for SPAs.</p>
+    <p>Output can be returned as raw HTML, structured JSON, Markdown, or plain text — selected per request. A CLI is available for one-off scrapes from the terminal, and all defaults can be configured via a <code class="code-inline">.env</code> file.</p>
+    <p>scrapesome is MIT licensed and built for developers who need robust scraping utilities with minimal setup. Contributions, bug reports, and feature requests are welcome on GitHub.</p>
+    <div class="about-links">
+      <a class="alink" href="https://github.com/scrapesome/scrapesome" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.51 2.87 8.34 6.84 9.69.5.09.68-.22.68-.49v-1.71c-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.1-1.5-1.1-1.5-.9-.63.07-.62.07-.62 1 .07 1.52 1.05 1.52 1.05.89 1.56 2.33 1.11 2.9.85.09-.66.35-1.11.63-1.37-2.22-.26-4.56-1.14-4.56-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05A9.42 9.42 0 0112 7.18c.85 0 1.7.12 2.5.34 1.91-1.32 2.75-1.05 2.75-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.35 4.81-4.58 5.06.36.32.68.94.68 1.9v2.82c0 .27.18.59.69.49A10.22 10.22 0 0022 12.23C22 6.58 17.52 2 12 2z"/></svg>
+        GitHub
+      </a>
+      <a class="alink" href="https://pypi.org/project/scrapesome/" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        PyPI
+      </a>
+      <a class="alink" href="http://scrapesome.github.io/scrapesome/" target="_blank">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V5a2 2 0 012-2h12a2 2 0 012 2v14M4 19h16M8 8h8M8 12h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        Documentation
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ── CANVAS ── */
+(()=>{
+  const c=document.getElementById('cvs'),x=c.getContext('2d');
+  let W,H,P=[];
+  const rz=()=>{W=c.width=innerWidth;H=c.height=innerHeight};rz();addEventListener('resize',rz);
+  let mx=-9e3,my=-9e3;addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY});
+  const C=['#a5d066','#c4e48a','#8ab84a','#7aac30','#dff0b3'];
+  for(let i=0;i<55;i++)P.push({x:Math.random()*1400,y:Math.random()*900,dx:(Math.random()-.5)*.28,dy:(Math.random()-.5)*.28,r:.9+Math.random()*1.7,c:C[Math.floor(Math.random()*C.length)],o:.1+Math.random()*.45});
+  (function draw(){
+    x.clearRect(0,0,W,H);
+    for(let i=0;i<P.length;i++)for(let j=i+1;j<P.length;j++){const dx=P[i].x-P[j].x,dy=P[i].y-P[j].y,d=Math.hypot(dx,dy);if(d<165){x.strokeStyle=`rgba(165,208,102,${.055*(1-d/165)})`;x.lineWidth=.7;x.beginPath();x.moveTo(P[i].x,P[i].y);x.lineTo(P[j].x,P[j].y);x.stroke()}}
+    for(const p of P){const d=Math.hypot(p.x-mx,p.y-my),b=d<120?1+(1-d/120)*1.4:1;x.globalAlpha=p.o*b;x.fillStyle=p.c;x.beginPath();x.arc(p.x,p.y,p.r*b,0,Math.PI*2);x.fill();p.x+=p.dx;p.y+=p.dy;if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0}
+    x.globalAlpha=1;requestAnimationFrame(draw);
+  })();
+})();
+
+/* ── MOBILE MENU ── */
+function toggleMobMenu(){
+  const burger=document.getElementById('nav-burger'),menu=document.getElementById('mob-menu');
+  const opening=!menu.classList.contains('on');
+  burger.classList.toggle('open',opening);
+  menu.classList.toggle('on',opening);
+  document.body.style.overflow=opening?'hidden':'';
+}
+function closeMobMenu(){
+  document.getElementById('nav-burger').classList.remove('open');
+  document.getElementById('mob-menu').classList.remove('on');
+  document.body.style.overflow='';
 }
 
-// Dark mode toggle
-function toggleDarkMode() {
-  document.documentElement.classList.toggle('dark');
+/* ── PAGES ── */
+function goPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('on'));
+  const pg=document.getElementById('page-'+id);
+  if(pg){pg.classList.add('on');pg.style.animation='none';pg.offsetHeight;pg.style.animation=''}
+  const nt=document.getElementById('nt-'+id);
+  if(nt)nt.classList.add('on');
+  const mn=document.getElementById('mob-nt-'+id);
+  if(mn)document.querySelectorAll('.mob-menu-btn').forEach(b=>{b.classList.toggle('on',b===mn)});
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
-// Form submit
-document.getElementById("scrapeForm").addEventListener("submit", async function (e) {
-  e.preventDefault();
+/* ── THEME ── */
+let light=false;
+function toggleTheme(){
+  light=!light;
+  document.body.classList.toggle('light',light);
+  document.getElementById('themeBtn').textContent=light?'🌙':'☀️';
+  const mc=document.getElementById('mob-theme-chk');if(mc)mc.checked=light;
+}
+function toggleThemeFromMenu(){
+  const mc=document.getElementById('mob-theme-chk');
+  light=mc.checked;
+  document.body.classList.toggle('light',light);
+  document.getElementById('themeBtn').textContent=light?'🌙':'☀️';
+}
 
-  const getNullableValue = (value) => value.trim() === "" ? null : value;
+/* ── RANGE ── */
+const rng=document.getElementById('s-to'),rv=document.getElementById('s-tv');
+rng.addEventListener('input',()=>rv.textContent=rng.value+'s');
 
-  const url = getNullableValue(document.getElementById("url").value);
-  const output_format_type = getNullableValue(document.getElementById("outputFormat").value);
-  const force_playwright = document.getElementById("forcePlaywright").value === "true";
-  const allow_redirects = document.getElementById("allowRedirects").value === "true";
+/* ── TOGGLE CARDS ── */
+function syncCard(cardId,cbId){
+  const cb=document.getElementById(cbId),card=document.getElementById(cardId);
+  cb.addEventListener('change',()=>card&&card.classList.toggle('active',cb.checked));
+}
+syncCard('card-pw','s-pw');
+syncCard('card-rd','s-redir');
 
-  const timeoutRaw = parseInt(document.getElementById("timeout").value);
-  const timeout = timeoutRaw === 0 ? null : timeoutRaw;
+/* ── ADVANCED ── */
+function toggleAdv(){
+  const btn=document.getElementById('sc-adv-btn'),body=document.getElementById('sc-adv-body');
+  const open=btn.classList.toggle('open');
+  body.style.display=open?'block':'none';
+}
 
-  const headersText = document.getElementById("headers").value;
-  let headers;
-  try {
-    headers = headersText.trim() === "" ? null : JSON.parse(headersText);
-  } catch (e) {
-    alert("Invalid JSON in headers.");
-    return;
-  }
+/* ── SCRAPE ── */
+async function doScrape(){
+  const url=(document.getElementById('s-url').value||'').trim();
+  if(!url){showToast('⚠️  URL is required');return}
+  const fmt=(document.querySelector('input[name="sfmt"]:checked')||{value:'html'}).value;
+  const pw=document.getElementById('s-pw').checked;
+  const rd=document.getElementById('s-redir').checked;
+  const to=parseInt(rng.value)||10;
+  const ht=document.getElementById('s-hdr').value.trim();
+  let hdrs=null;
+  if(ht){try{hdrs=JSON.parse(ht)}catch{showToast('❌  Invalid JSON in headers');return}}
+  const payload={url,output_format_type:fmt,timeout:to,force_playwright:pw,allow_redirects:rd,headers:hdrs};
+  setLoading(true);
+  document.getElementById('s-res').style.display='none';
+  try{
+    const r=await fetch('/api/scrape',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const j=await r.json();const data=j?.data??j;
+    document.getElementById('s-out').textContent=typeof data==='string'?data:JSON.stringify(data,null,2);
+    const badge=document.getElementById('res-fmt-badge');
+    if(badge)badge.textContent=fmt.toUpperCase();
+    document.getElementById('s-res').style.display='block';
+    showToast('✓  Scrape complete');
+  }catch(e){showToast('❌  '+e.message)}
+  finally{setLoading(false)}
+}
+function setLoading(on){
+  const b=document.getElementById('s-btn');
+  document.getElementById('s-txt').textContent=on?'Scraping…':'Scrape now';
+  document.getElementById('s-spin').style.display=on?'block':'none';
+  document.getElementById('s-arr').style.display=on?'none':'block';
+  b.disabled=on;
+}
 
-  const payload = {
-    url,
-    output_format_type,
-    timeout,
-    force_playwright,
-    allow_redirects,
-    headers,
-  };
+/* ── COPY UTILS ── */
+function copyResult(){navigator.clipboard.writeText(document.getElementById('s-out').textContent).then(()=>showToast('✓  Copied'))}
+function copyCode(id){navigator.clipboard.writeText(document.getElementById(id).innerText).then(()=>showToast('✓  Code copied'))}
+function copyText(t){navigator.clipboard.writeText(t).then(()=>showToast('✓  Copied'))}
 
-  try {
-    const response = await fetch("/api/scrape", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+/* ── TOAST ── */
+let tt;
+function showToast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2800)}
 
-    const result = await response.json();
-    const data = result?.data ?? result;
-    document.getElementById("result").classList.remove("hidden");
-    document.getElementById("output").textContent = JSON.stringify(data, null, 2);
-  } catch (err) {
-    alert("Failed to scrape: " + err.message);
-    console.error(err);
-  }
-});
-  </script>
-
-
-  <!-- <script>
-  const timeoutRange = document.getElementById("timeout");
-  const timeoutValue = document.getElementById("timeoutValue");
-  timeoutRange.addEventListener("input", () => {
-    timeoutValue.textContent = `${timeoutRange.value}s`;
-  });
-
-  function showPage(pageId) {
-    document.getElementById("scraperPage").classList.add("hidden");
-    document.getElementById("aboutPage").classList.add("hidden");
-    document.getElementById(pageId).classList.remove("hidden");
-  }
-
-  function toggleDarkMode() {
-    document.documentElement.classList.toggle('dark');
-  }
-
-  function getNullableValue(value) {
-    return value.trim() === "" ? null : value;
-  }
-
-  function renderJsonAsTable(jsonData) {
-    if (typeof jsonData !== "object" || jsonData === null) {
-      return `<pre>${JSON.stringify(jsonData, null, 2)}</pre>`;
-    }
-
-    let rows = "";
-
-    if (Array.isArray(jsonData)) {
-      const keys = Object.keys(jsonData[0] || {});
-      const headers = keys.map(key => `<th class="border px-2 py-1">${key}</th>`).join("");
-      const body = jsonData.map(item =>
-        `<tr>${keys.map(key => `<td class="border px-2 py-1">${item[key]}</td>`).join("")}</tr>`
-      ).join("");
-      rows = `<thead><tr>${headers}</tr></thead><tbody>${body}</tbody>`;
-    } else {
-      rows = Object.entries(jsonData).map(([key, value]) =>
-        `<tr><td class="border px-2 py-1 font-semibold">${key}</td><td class="border px-2 py-1">${JSON.stringify(value)}</td></tr>`
-      ).join("");
-      rows = `<tbody>${rows}</tbody>`;
-    }
-
-    return `<table class="table-auto border-collapse border w-full text-sm dark:text-white dark:border-gray-600 mt-2">${rows}</table>`;
-  }
-
-  document.getElementById("scrapeForm").addEventListener("submit", async function (e) {
-    e.preventDefault();
-
-    const url = getNullableValue(document.getElementById("url").value);
-    const output_format_type = getNullableValue(document.getElementById("outputFormat").value);
-    const force_playwright = document.getElementById("forcePlaywright").value === "true";
-    const allow_redirects = document.getElementById("allowRedirects").value === "true";
-
-    const timeoutRaw = parseInt(document.getElementById("timeout").value);
-    const timeout = timeoutRaw === 0 ? null : timeoutRaw;
-
-    const headersText = document.getElementById("headers").value;
-    let headers;
-    try {
-      headers = headersText.trim() === "" ? null : JSON.parse(headersText);
-    } catch (e) {
-      alert("Invalid JSON in headers.");
-      return;
-    }
-
-    const payload = {
-      url,
-      output_format_type,
-      timeout,
-      force_playwright,
-      allow_redirects,
-      headers,
-    };
-
-    try {
-      const response = await fetch("/api/scrape", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await response.json();
-      const data = result?.data ?? result;
-      const format = output_format_type || "html";
-
-      const outputContainer = document.getElementById("output");
-      outputContainer.innerHTML = ""; // Clear previous output
-
-      // Format-based rendering
-      if (format === "html") {
-        outputContainer.innerHTML = data;
-      } else if (format === "markdown") {
-        outputContainer.innerHTML = marked.parse(data);
-      } else if (format === "json") {
-        let parsed;
-        try {
-          parsed = typeof data === "string" ? JSON.parse(data) : data;
-        } catch (err) {
-          parsed = { error: "Failed to parse JSON", raw: data };
-        }
-        outputContainer.innerHTML = renderJsonAsTable(parsed);
-      } else {
-        outputContainer.textContent = data;
-      }
-
-      document.getElementById("result").classList.remove("hidden");
-
-    } catch (err) {
-      alert("Failed to scrape: " + err.message);
-      console.error(err);
-    }
-  });
-</script> -->
-
+document.getElementById('s-url').addEventListener('keydown',e=>{if(e.key==='Enter')doScrape()});
+</script>
 </body>
 </html>
